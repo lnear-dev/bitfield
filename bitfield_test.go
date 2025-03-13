@@ -7,10 +7,10 @@ import (
 
 func TestNewBitField(t *testing.T) {
 	tests := []struct {
-		name      string
-		shift     int
-		size      int
-		wantPanic bool
+		name    string
+		shift   uint
+		size    uint
+		wantErr bool
 	}{
 		{"valid field", 0, 3, false},
 		{"max valid field", 29, 3, false},
@@ -18,20 +18,16 @@ func TestNewBitField(t *testing.T) {
 		{"invalid size", 0, 65, true},
 		{"invalid combined", 62, 3, true},
 		{"zero size", 0, 0, true},
-		{"negative size", 0, -1, true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer func() {
-				panicked := recover() != nil
-				if panicked != tt.wantPanic {
-					t.Errorf("NewBitField(%v, %v): panic = %v, want panic = %v",
-						tt.shift, tt.size, panicked, tt.wantPanic)
-				}
-			}()
-			bf := New[uint64, uint64](tt.shift, tt.size)
-			if !tt.wantPanic {
+			bf, err := Safe[uint64, uint64](tt.shift, tt.size)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Safe(%v, %v): err = %v, want err = %v",
+					tt.shift, tt.size, err, tt.wantErr)
+			}
+			if !tt.wantErr {
 				if bf.Shift != tt.shift {
 					t.Errorf("shift = %v, want %v", bf.Shift, tt.shift)
 				}
@@ -131,8 +127,8 @@ func TestBitField_Decode(t *testing.T) {
 func TestBitField_NextBitField(t *testing.T) {
 	bf := New[uint8, uint32](0, 3)
 	tests := []struct {
-		size      int
-		wantShift int
+		size      uint
+		wantShift uint
 		wantPanic bool
 	}{
 		{3, 3, false},
